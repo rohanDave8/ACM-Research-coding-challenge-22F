@@ -1,50 +1,41 @@
-# ACM Research coding challenge (Fall 2022)
+# Using Confidence Intervals to Approximate the True Average Sales Price of All Cars in Every State
 
-Note: if it's getting down to the deadline (September 5th at 11:59 CT) and you don't think you will be able to finish your project on time, just [submit](http://apply.acmutd.co/research-coding-challenge) whatever you have! Also, you *can* technically turn it in after midnight – we will look at submissions tomorrow morning – but don't use that as an excuse to stay up late :P.
+## The Problem
 
-This semester's challenge is especially open-ended. [Here is a dataset](https://www.kaggle.com/datasets/chancev/carsforsale) on Kaggle called "CarsForSale". It contains data scraped from the online car marketplace Cars.com. Each row contains 25 pieces of information about a car's listing, such as its price, year, model, and color.
+We would like to be able to compare the overall sales prices of cars between states to determine if one state has a cheaper offering of cars than another. We can use the mean sales prices of cars in each state to do this. Given this dataset, however, we have less than 10,000 entries of car sales information to calculate these state averages. This means that averages calculated from only this data would not truly represent all car sales prices per state. 
 
-The challenge is to do *something interesting* with the data. Can you find a pattern, answer a question, or create a visualization? In case nothing comes to mind, here are some ideas, with varying complexity:
+To solve this issue, we can calculate confidence intervals with the given information to gain a better grasp of the true mean sales prices of all cars in each state in the U.S. - the average we would receive if every single car sale in a state was recorded and combined to gain this value. Realistically, this would not be possible due to sampling variability and other factors, so this method is just an estimate. Additionally, certain considerations and assumptions must be made for this method which will be addressed at the end.
 
-- What qualities about a car do buyers seem to value the most?
-- Make a graph to visualize the most popular car models over time.
-- What colors of cars are most expensive?
-- Do different brands try to appeal to people looking for different things?
-- Come up with your own algorithm to figure out how good of a deal a listing is and compare it to the one in the dataset (`DealType`).
-- Use [cluster analysis](https://en.wikipedia.org/wiki/Cluster_analysis) to group the cars into categories.
-- How do people's taste in cars differ between states?
-- Train a machine learning model to predict some aspect of a car based on other information from its listing.
+I only used Python for this project.
 
-However, we strongly encourage you to come up with your own problem to solve!
+## The Process
 
-You can use any programming language, framework, or library you want, but we recommend [creating a notebook in Kaggle](https://www.kaggle.com/docs/notebooks) and using Python. This will run in your browser, interlaces code with documentation, allows you to import the CarsForSale dataset easily by pressing the "Add data" button, and gives you access to Python's high-quality, high-level libraries for working with data. [Learn more about data science in Python.](https://www.w3schools.com/datascience/ds_python.asp)
+1. First, I cleaned up the data. I converted the given CSV format to a Pandas DataFrame. Since I mainly used the `State` and `Price` values, I focused on these two pieces of information in the dataset when cleaning. `State` contained the abbreviation for the U.S. state where the car sale occurred, but the data set also contained abbreviations for territories or other areas that were not U.S. states. Since every U.S. state is a two-letter abbreviation, I removed entries whose `State` value was not two characters long. I verified that 50 unique entries for `State` were now left in the dataset.
 
-## How to submit your solution
+2. Next, I cleaned the `Price` values. Since a mean price needed to be calculated, the String values needed to be converted to Integers. I removed the initial `$` character as well as any `,` characters. Then, the remaining String was converted to an Integer value. I used the Regular Expression module to make this easier.
 
-1. [Create a **public** fork](https://docs.github.com/en/get-started/quickstart/fork-a-repo) of this repository and name it  `ACM-Research-coding-challenge-22F` (click the "Fork" button in the top right).
+3. With the dataset now ready to be used, I started by sorting the dataset entries by the state they belonged to. I then calculated the mean for each state using NumPy. As a visual representation of this, I used the Plotly module to create a graphic map of this information:
 
-2. Replace this README file with a description ([written in Markdown](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/about-writing-and-formatting-on-github)) of your solution. Regardless of your success, describe the problem you set out to solve and how you did it. Split it up into sections with headers, and, if relevant, include figures.
+![usmap](usmap.png)
 
-3. Make sure to include all relevant files in your fork. If you made the project in a Kaggle notebook, click **File** → **Download Notebook** to download it as an `.ipynb` file.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Although it looks appealing, this only represents the data we were given. That's good, but we can do better!
 
-4. You may have to "clone" the fork you made to edit files locally on your computer and "push" them to GitHub. Learn how to do that [here](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository).
+4. In order to calculate confidence intervals, the standard deviation for all of the values in each state is needed alongside their mean. Thus, the standard deviation of car sales prices was also calculated for every state using NumPy. 
 
-4. Submit the link to your fork in this [form](http://apply.acmutd.co/research-coding-challenge).
+5. Before we can calculate the confidence intervals, there is one last thing we must consider - the degrees of freedom for each set of values. Sets with 0 degrees of freedom (states that only had one entry) cannot have a confidence interval calculated, so they were excluded with not enough information provided as reasoning.
 
-## No collaboration policy
+6. With all of this information, a 90% confidence interval for each state was calculated using the following formula:
 
-**You may not collaborate with anyone on this challenge.** You _are_ allowed (and encouraged) to use internet documentation. If you use existing code (either from Github, Stack Overflow, or other sources), **please cite your sources in the README**.
+$$ CI = {\bar{x} \pm z{s \over \sqrt{n}}} $$
 
-## Timing
+7. I lastly generated a visualization with this newfound information and the Matplotlib module:
 
-Please don't spend too long on this project: **30 to 60 minutes** is reasonable. It's okay to put more time into your submission than that, but we don't expect you to get that much done; we really don't want this challenge to be a burden!
+![chart](chart.png)
 
-If you're *completely new* to this kind of project, however, it will likely take you more than an hour. This is a *densely useful* project to go through (you will learn a lot), so we believe this is justified.
+## Significance
 
-## Assessment criteria
+We can perform as much data manipulation and calculation as we want but it is useless if we don't understand what our results mean. Our final bar chart displays a range of possible prices for each state in which the true mean value of all car sales prices for that state resides. In other words, our 90% confidence interval means that we are 90% sure that the true average car sales price consisting of every car sale in a state is within the interval displayed for each bar on the chart. Some intervals are larger due to a lower sample size for that state and some are more accurate due to a greater sample size. With this knowledge, we can more confidently compare whether there is a significant difference between the averages of any two states' car sale prices. If two intervals do not overlap prices at all, there is a statistically significant difference between their true averages. We now have a much more representative set of information than simple means can display.
 
-Submissions will be evaluated holistically, in combination with the rest of your application. We will consider your effort, use of external resources, how you approached the problem, and presentation, among other considerations.
+## Considerations
 
-## Support and questions
-
-Feel free to ask for clarifications in the #research-qna channel in the [ACM UTD Discord server](https://discord.gg/nJxRdKdG4d)! You can also directly message Roman Hauksson on Discord: `RomanHauksson#3458`.
+Although our analysis was very beneficial and informative, it only uses this one data set. If this data is biased in any way, the information could be skewed or misleading. Our model assumes the data was collected randomly across the United States. If these statements do not hold true, our method loses credibility which should be kept in mind.
